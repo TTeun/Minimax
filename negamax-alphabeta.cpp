@@ -24,7 +24,7 @@ int minimax(Board * currentBoard, int alpha, int beta, const size_t depth, const
 
   if (depth == 0)
   {
-    if(maximizing)
+    if (maximizing)
       return evalScore(currentBoard);
     else
       return -evalScore(currentBoard);
