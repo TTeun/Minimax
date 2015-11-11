@@ -3,7 +3,6 @@
 #include <limits>
 #include <cstddef>
 
-
 using namespace std;
 
 /* Structure that will hold all information of the game board */
@@ -65,6 +64,7 @@ int main(int argc, char **argv) {
   game.score = 0;
 
   size_t depth = argc == 2 ? stoi(argv[1]) : 5;
-  cout << "Score: " << minimax(&game, -1000, 1000, depth, true) << '\n';
+  int score = minimax(&game, std::numeric_limits<int>::min(), std::numeric_limits<int>::max(), depth, true);
+  cout << "Score: " << score << '\n';
   cout << "Visited: " << nodes << '\n';
 }
