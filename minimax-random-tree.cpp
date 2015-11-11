@@ -13,14 +13,12 @@ struct Board
   int score;
 };
 
-size_t nodes = 0;
-
 int evalScore(Board * currentBoard) {
   return currentBoard->score;
 }
 
-int minimax(Board * currentBoard, const size_t depth, const bool white) {
-  ++nodes;
+int minimax(Board * currentBoard, const size_t depth, const bool white, size_t * nodes) {
+  ++*nodes;
 
   const size_t nMoves = 3;
 
@@ -42,7 +40,7 @@ int minimax(Board * currentBoard, const size_t depth, const bool white) {
     // Do move
     currentBoard->score += moves[i];
 
-    int score = minimax(currentBoard, depth - 1, not white);
+    int score = minimax(currentBoard, depth - 1, not white, nodes);
 
     if ((white and score > currentScore) or (not white and score < currentScore)) {
       currentScore = score;
@@ -55,13 +53,29 @@ int minimax(Board * currentBoard, const size_t depth, const bool white) {
   return currentScore;
 }
 
+double getAvgCosts(const size_t trials, const size_t depth)
+{
+  double avgCosts = 0.0;
+  Board game;
+
+  for(size_t trial = 1; trial <= trials; ++trial)
+  {
+    size_t counter = 0;
+    game.score = 0;
+    minimax(&game, depth, true, &counter);
+    avgCosts += (static_cast<double>(counter) - avgCosts)/trial;
+    cout << counter << 
+  }
+
+  return avgCosts;
+}
+
 int main(int argc, char **argv) {
   srand(unsigned(time(NULL)));
 
-  Board game;
-  game.score = 0;
-
   size_t depth = argc == 2 ? stoi(argv[1]) : 5;
-  cout << "Score: " << minimax(&game, depth, true) << '\n';
-  cout << "Visited: " << nodes << '\n';
+
+  double avgCosts = getAvgCosts(100, depth);
+
+  cout << "Visited: " << avgCosts << '\n';
 }

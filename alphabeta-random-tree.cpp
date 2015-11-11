@@ -19,8 +19,8 @@ int evalScore(Board * currentBoard) {
   return currentBoard->score;
 }
 
-int minimax(Board * currentBoard, int alpha, int beta, const size_t depth, const bool maximizing) {
-  ++nodes;
+int minimax(Board * currentBoard, int alpha, int beta, const size_t depth, const bool maximizing, size_t * nodes) {
+  ++*nodes;
 
   const size_t nMoves = 3;
 
@@ -44,7 +44,7 @@ int minimax(Board * currentBoard, int alpha, int beta, const size_t depth, const
       // Do move
       currentBoard->score += moves[i];
 
-      int score = minimax(currentBoard, alpha, beta, depth - 1, not maximizing);
+      int score = minimax(currentBoard, alpha, beta, depth - 1, not maximizing, nodes);
 
       // Undo move
       currentBoard->score -= moves[i];
@@ -66,7 +66,7 @@ int minimax(Board * currentBoard, int alpha, int beta, const size_t depth, const
       // Do move
       currentBoard->score += moves[i];
 
-      int score = minimax(currentBoard, alpha, beta, depth - 1, not maximizing);
+      int score = minimax(currentBoard, alpha, beta, depth - 1, not maximizing, nodes);
 
       // Undo move
       currentBoard->score -= moves[i];
@@ -85,15 +85,28 @@ int minimax(Board * currentBoard, int alpha, int beta, const size_t depth, const
   return currentScore;
 }
 
+double getAvgCosts(const size_t trials, const size_t depth)
+{
+  double avgCosts = 0.0;
+  Board game;
 
+  for(size_t trial = 1; trial <= trials; ++trial)
+  {
+    size_t counter = 0;
+    game.score = 0;
+    minimax(&game, -1000, 1000, depth, true, &counter);
+    avgCosts += (static_cast<double>(counter) - avgCosts)/trial;
+  }
+
+  return avgCosts;
+}
 
 int main(int argc, char **argv) {
   srand(unsigned(time(NULL)));
 
-  Board game;
-  game.score = 0;
-
   size_t depth = argc == 2 ? stoi(argv[1]) : 5;
-  cout << "Score: " << minimax(&game, -1000, 1000, depth, true) << '\n';
-  cout << "Visited: " << nodes << '\n';
+
+  double avgCosts = getAvgCosts(1000, depth);
+
+  cout << "Visited: " << avgCosts << '\n';
 }
