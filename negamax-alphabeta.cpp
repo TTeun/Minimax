@@ -47,8 +47,8 @@ int minimax(Board * currentBoard, int alpha, int beta, const size_t depth, const
     if (score > max)
       max = score;
 
-    if (alpha < max)
-      alpha = max;
+    if (alpha < score)
+      alpha = score;
 
     if (alpha >= beta)
       break;
@@ -64,7 +64,9 @@ int main(int argc, char **argv) {
   game.score = 0;
 
   size_t depth = argc == 2 ? stoi(argv[1]) : 5;
-  int score = minimax(&game, std::numeric_limits<int>::min(), std::numeric_limits<int>::max(), depth, true);
+  int min = std::numeric_limits<int>::min() + 1;
+  int max = std::numeric_limits<int>::max() - 1;
+  int score = minimax(&game, min, max, depth, true);
   cout << "Score: " << score << '\n';
   cout << "Visited: " << nodes << '\n';
 }
