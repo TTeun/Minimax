@@ -58,13 +58,12 @@ double getAvgCosts(const size_t trials, const size_t depth)
   double avgCosts = 0.0;
   Board game;
 
-  for(size_t trial = 1; trial <= trials; ++trial)
+  for (size_t trial = 1; trial <= trials; ++trial)
   {
     size_t counter = 0;
     game.score = 0;
     minimax(&game, depth, true, &counter);
-    avgCosts += (static_cast<double>(counter) - avgCosts)/trial;
-    cout << counter << 
+    avgCosts += (static_cast<double>(counter) - avgCosts) / trial;
   }
 
   return avgCosts;
