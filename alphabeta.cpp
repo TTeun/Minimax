@@ -1,5 +1,7 @@
 #include <iostream>
 #include <string>
+#include <limits>
+#include <cstddef>
 
 using namespace std;
 
@@ -23,7 +25,7 @@ int minimax(Board * currentBoard, int alpha, int beta, const size_t depth, const
   if (depth == 0) // The search has gone deep enough
     return evalScore(currentBoard);
 
-  int currentScore = (maximizing ? -1000 : 1000);
+  int extremum = (maximizing ? numeric_limits<int>::min() : numeric_limits<int>::max());
 
   if (maximizing)
   {
@@ -39,11 +41,11 @@ int minimax(Board * currentBoard, int alpha, int beta, const size_t depth, const
       // Undo move
       currentBoard->score -= moveValue;
 
-      if (score > currentScore)
-        currentScore = score;
+      if (score > extremum)
+        extremum = score;
 
-      if (alpha < currentScore)
-        alpha = currentScore;
+      if (alpha < extremum)
+        alpha = extremum;
 
       if (beta <= alpha)
         break;
@@ -63,18 +65,18 @@ int minimax(Board * currentBoard, int alpha, int beta, const size_t depth, const
       // Undo move
       currentBoard->score -= moveValue;
 
-      if (score < currentScore)
-        currentScore = score;
+      if (score < extremum)
+        extremum = score;
 
-      if (beta > currentScore)
-        beta = currentScore;
+      if (beta > extremum)
+        beta = extremum;
 
       if (beta <= alpha)
         break;
     }
   }
 
-  return currentScore;
+  return extremum;
 }
 
 
@@ -84,6 +86,9 @@ int main(int argc, char **argv) {
   game.score = 0;
 
   size_t depth = argc == 2 ? stoi(argv[1]) : 5;
-  cout << "Score: " << minimax(&game, -1000, 1000, depth, true) << '\n';
-  cout << "Visited: " << nodes << '\n';
+  int score = minimax(&game, numeric_limits<int>::min(),
+                  numeric_limits<int>::max(), depth, true);
+
+  cout << "Score: " << score << '\n'
+       << "Visited: " << nodes << '\n';
 }
