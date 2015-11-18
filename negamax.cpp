@@ -23,12 +23,7 @@ int minimax(Board *currentBoard, const size_t depth, const bool maximizing) {
   const size_t nMoves = 3;
 
   if (depth == 0)
-  {
-    if (maximizing)
-      return evalScore(currentBoard);
-    else
-      return -evalScore(currentBoard);
-  }
+    return maximizing ? evalScore(currentBoard) : -evalScore(currentBoard);
 
   int max = std::numeric_limits<int>::min();
 
