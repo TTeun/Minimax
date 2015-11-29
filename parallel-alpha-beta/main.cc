@@ -6,13 +6,14 @@
 using namespace std;
 
 size_t depth;
+size_t branching = 4;
 
 void startSearch()
 {
-  bsp_begin(2);
+  bsp_begin(branching - 1);
 
   Board initial;
-  Minimax game(initial, 3, depth, true);
+  Minimax game(initial, branching, depth, true);
   game.start();
 
   bsp_end();
