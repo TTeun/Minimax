@@ -1,4 +1,4 @@
-/************ RNG */
+/************ RNJezus */
 #include <unistd.h>
 #include <time.h>
 #include <fcntl.h>
@@ -18,6 +18,6 @@ static inline unsigned unif_random(unsigned n) {
 
         seeded = 1;
     }
-
+    
     return (int)(drand48() * n);
 }

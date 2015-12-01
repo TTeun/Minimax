@@ -63,8 +63,23 @@ static board_t insert_tile_rand(board_t board, board_t tile) {
     return board | tile;
 }
 
+static board_t insert_tile_set(board_t board, board_t tile, int index) {
+    board_t tmp = board;
+    while (true) {
+        while ((tmp & 0xf) != 0) {
+            tmp >>= 4;
+            tile <<= 4;
+        }
+        if (index == 0) break;
+        --index;
+        tmp >>= 4;
+        tile <<= 4;
+    }
+    return board | tile;
+}
+
 static board_t drawNew(){
-    return (unif_random(10) < 9) ? 1 :2;
+    return (unif_random(10) < 9) ? 1 : 2;
 }
 
 static board_t initBoard(){
