@@ -14,7 +14,7 @@ static inline int endNode(board_t board){
     int maxTmp;
     int bestMove;
     board_t tmp;
-    max = -50;
+    max = -1;
     bestMove = 0;
     for (int i = 0; i < 4; i++)
     {
@@ -28,10 +28,9 @@ static inline int endNode(board_t board){
                 bestMove = i;
             }
         }
-        if (max == 0 && i == 3){
-            printf("asdsadsa");
-            break;
-        }
+        if (max == -1 && i == 3)
+            return -1;
+    
     }
     return bestMove;
 }
@@ -39,17 +38,21 @@ static inline int endNode(board_t board){
 static inline void playGameAi(){
     board_t board = initBoard();
     char c;
+    int move;
     while(1)
     {        
         int score = score_helper(board, score_table);  
-        printf("score : %d\n", score);        
+        printf("score : %d, empty : %d\n", score, count_empty(board));        
         printBoard(board);
 
-        board = execute_move(endNode(board), board);
+        move = endNode(board);
+        if (move == -1)
+            break;
+
+        board = execute_move(move , board);
         board = insert_tile_rand(board,drawNew());
-        scanf("%c",&c);
+        //scanf("%c",&c);
     }
-    printf("\nGame Over...\n");
 }
 
 int main(){
