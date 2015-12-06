@@ -5,8 +5,6 @@ int Minimax::parallelSearch(Board *board, int alpha, int beta, size_t depth, boo
   if (depth == 0)
     return maximizing ? board->evaluate() : -board->evaluate();
 
-  int max = numeric_limits<int>::min();
-
   // Prepare the moves
   vector<int> moves(d_branches);
 
@@ -16,59 +14,51 @@ int Minimax::parallelSearch(Board *board, int alpha, int beta, size_t depth, boo
   if (pv)
   {
     board->move(moves[0]); // Do move
-    int PVScore = -parallelSearch(board, -beta, -alpha, depth - 1, not maximizing, true, proc);
+    int max = -parallelSearch(board, -beta, -alpha, depth - 1, not maximizing, true, proc);
     board->move(-moves[0]); // Undo move
 
-    if (PVScore > max)
-      max = PVScore;
-
-    if (alpha < PVScore)
-      alpha = PVScore;
-
-    if (alpha >= beta)
-      return max;
+    if (alpha < max)
+      alpha = max;
 
     /**
      * Do the other moves in parallel
      * assume there are enough processors
      */
-    node total = bsp_nprocs();
-    int *nonPVScores = new int[total];
+    vector<int> nonPVScores(d_branches - 1);
 
-    bsp_push_reg(nonPVScores, total * sizeof(int));
+    bsp_push_reg(&nonPVScores[0], nonPVScores.size() * sizeof(int));
     bsp_sync();
 
-    for (size_t i = 1; i < d_branches; ++i)
+    for (size_t i = 1; i != d_branches; ++i)
     {
-      if (proc + 1 == i)
+      if (proc == (i - 1) % d_nodes)
       {
         board->move(moves[i]); // Do move
-        nonPVScores[proc] = -parallelSearch(board, -beta, -alpha, depth - 1, not maximizing, false, proc);
+        nonPVScores[i - 1] = -parallelSearch(board, -beta, -alpha, depth - 1, not maximizing, false, proc);
         board->move(-moves[i]); // Undo move
 
         // Broadcast to other processors
-        for (node p = 0; p < total; ++p)
+        for (node p = 0; p < d_nodes; ++p)
           if (p != proc)
-            bsp_put(p, &nonPVScores[proc], nonPVScores, p * sizeof(int), sizeof(int));
+            bsp_put(p, &nonPVScores[i - 1], &nonPVScores[0], (i - 1) * sizeof(int), sizeof(int));
       }
     }
 
     bsp_sync();
 
     // Find the highest score
-    // Maybe this can be ran in parallel too for large branching factors?
-    for (node p = 0; p < total; ++p)
-      if (nonPVScores[p] > max)
-        max = nonPVScores[p];
+    for (node p = 1; p != d_branches; ++p)
+      if (nonPVScores[p - 1] > max)
+        max = nonPVScores[p - 1];
 
-    bsp_pop_reg(nonPVScores);
-    delete[] nonPVScores;
+    bsp_pop_reg(&nonPVScores[0]);
 
     return max;
   }
 
   // Not on the PV, so simply go over each move.
-  for (size_t i = 0; i < d_branches; ++i)
+  int max = numeric_limits<int>::min();
+  for (size_t i = 0; i != d_branches; ++i)
   {
     board->move(moves[i]); // Do move
     int score = -parallelSearch(board, -beta, -alpha, depth - 1, not maximizing, false, proc);

@@ -6,14 +6,15 @@
 using namespace std;
 
 size_t depth;
-size_t branching = 4;
+size_t branching;
+node nodes;
 
 void startSearch()
 {
-  bsp_begin(branching - 1);
+  bsp_begin(nodes);
 
   Board initial;
-  Minimax game(initial, branching, depth, true);
+  Minimax game(initial, nodes, branching, depth, true);
   game.start();
 
   bsp_end();
@@ -21,7 +22,9 @@ void startSearch()
 
 int main(int argc, char **argv)
 {
-  depth = argc == 2 ? stoi(argv[1]) : 5;
+  branching = argc >= 2 ? stoi(argv[1]) : 3;
+  nodes = argc >= 3 ? stoi(argv[2]) : 1;
+  depth = argc >= 4 ? stoi(argv[3]) : 10;
 
   bsp_init(startSearch, argc, argv);
 
