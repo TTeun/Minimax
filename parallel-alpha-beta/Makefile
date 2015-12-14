@@ -1,9 +1,9 @@
 CXXINCL = -I../../bsp/include
 LDLIBS = -L../../bsp/lib -lmcbsp1.2.0 -lpthread
 CXX = g++
-CXXFLAGS = -MMD -O3 -std=c++11
+CXXFLAGS = -MMD -O3 -std=c++0x
 LINKER = $(CXX)
-LDFLAGS = 
+LDFLAGS = -lrt
 
 TARGET = ../bin/parallel
 SOURCES = main.cc $(wildcard **/*.cc)
