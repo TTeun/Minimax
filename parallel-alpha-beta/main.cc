@@ -13,7 +13,7 @@ void startSearch()
 {
   bsp_begin(nodes);
 
-  for(node p = 1; p <= nodes; ++p)
+  for(node p = 1; p <= nodes; p = 2*p)
   { 
     if(bsp_pid() == 0)
     {
@@ -28,14 +28,13 @@ void startSearch()
     bsp_sync();
     double duration = bsp_time() - start;
 
-    for(node p = 0; p < nodes; ++p)
+    
+    if(bsp_pid() == 0)
     {
-      if(bsp_pid() == p)
-      {
-        cout << "Core" << p << ": " << game.getCount() << "; duration: " << duration << '\n';
-      }
-      bsp_sync();
+      cout << "Explored: " << game.getCount() << "; duration: " << duration << '\n';
     }
+
+    bsp_sync();
   }
 
   bsp_end();
