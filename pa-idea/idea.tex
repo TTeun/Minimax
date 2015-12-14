@@ -1,0 +1,65 @@
+\documentclass[11pt]{article}
+
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{algorithmicx}
+\usepackage{algpseudocode}
+\usepackage{mathtools}
+
+\DeclarePairedDelimiter\ceil{\lceil}{\rceil}
+\DeclarePairedDelimiter\floor{\lfloor}{\rfloor}
+\newcommand{\Mod}{\ \text{mod}\ }
+
+\title{Idea for parallel }
+\author{Harmen Stoppels}
+
+\begin{document}
+  \begin{algorithmic}
+    \State $p$ is the current processor id.
+    \State $P = \{P_1, \dots, P_k\}$ set of processors
+    \State $Q = \emptyset$
+    \Function{Score}{node, depth, $P$}
+      \State $M = \Call{ListMoves}{\textrm{node}}$
+      \If{$\mathrm{depth} = 0 \lor |M| = 0$}
+        \State \Return \Call{HeuristicScore}{node}
+      \EndIf
+      \State $S_0 = \Call{Score}{M_0,\, \textrm{depth} - 1,\, P}$
+      \Comment YBWC
+      \State $M \gets M \backslash \{M_0\}$
+      \If{$|P| = 1$}
+        \State $C \gets C + 1$
+
+        \If{$C = \textrm{bulk sync limit}$}
+          \State $\textrm{Done}_p = false$
+          \State Put $\textrm{Done}_p$ in $P(*)$
+          \State Synchronize
+          \If{$\exists Q_i \in Q : Q_i$ not done}
+            
+          \EndIf
+        \EndIf
+      \EndIf
+      \If{$|P| > |M|$}
+        \Comment Take one move per subgroup of procs
+        \State $j \equiv |P| \Mod p$
+        \State $S_j \equiv \Call{Score}{M_j, \textrm{depth}-1, \{P_q : |P| \Mod q = p\}}$
+        \For{$i = 0, \dots, (|P|-1) \, \land \, |P| \Mod i \neq p$}
+          \State Put $S_j$ in $P_i$
+          \Comment {{\tiny Not all $|P|$ procs should do this... just one or each a part}}
+        \EndFor
+
+        \State Synchronize
+      \Else
+        \Comment Distribute moves cyclically
+        \For{$i = 0, \dots, (|M|-1) \, \land \, |M| \Mod i \neq p$}
+          \State $Q \gets Q \cup \{M_i\}$
+        \EndFor
+      \EndIf
+
+      \If{Maximizing}
+        \State \Return $\max S$
+      \Else
+        \State \Return $\min S$
+      \EndIf
+    \EndFunction
+  \end{algorithmic}
+\end{document}
