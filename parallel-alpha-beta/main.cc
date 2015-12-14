@@ -15,13 +15,16 @@ void startSearch()
 
   Board initial;
   Minimax game(initial, nodes, branching, depth, true);
+
+  double start = bsp_time();
   game.start();
+  double duration = bsp_time() - start;
 
   for(node p = 0; p < nodes; ++p)
   {
     if(bsp_pid() == p)
     {
-      cout << p << ": " << game.getCount() << '\n';
+      cout << p << ": " << game.getCount() << "; duration: " << duration << '\n';
     }
     bsp_sync();
   }
