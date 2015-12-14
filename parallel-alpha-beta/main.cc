@@ -17,6 +17,15 @@ void startSearch()
   Minimax game(initial, nodes, branching, depth, true);
   game.start();
 
+  for(node p = 0; p < nodes; ++p)
+  {
+    if(bsp_pid() == p)
+    {
+      cout << p << ": " << game.getCount() << '\n';
+    }
+    bsp_sync();
+  }
+
   bsp_end();
 }
 

@@ -3,7 +3,10 @@
 int Minimax::parallelSearch(Board *board, int alpha, int beta, size_t depth, bool maximizing, bool pv, node proc)
 {
   if (depth == 0)
+  {
+    ++d_count;
     return maximizing ? board->evaluate() : -board->evaluate();
+  }
 
   // Prepare the moves
   vector<int> moves(d_branches);
