@@ -5,6 +5,8 @@
 \usetikzlibrary{decorations.pathmorphing}
 \usetikzlibrary{decorations.markings}
 \usetikzlibrary{backgrounds}
+\usetikzlibrary{positioning}
+\tikzstyle{helper} = [black,draw=white,fill=white, ultra thick, rectangle]
 \tikzstyle{found} = [pink,draw=pink,fill=white, ultra thick]
 \tikzstyle{cutted} = [dotted,fill=pink!50]
 \tikzstyle{pv} = [line width=3pt]
@@ -18,10 +20,10 @@
   level 2/.style={sibling distance=21mm},
   level 3/.style={sibling distance=7mm},
 ]
-\node {$*$}
-  child [pv] {node {$*$}
-    child [pv] {node {$*$}
-      child [pv] {node {$*$}}
+\node (a) {$*$}
+  child [pv] {node (b) {$*$}
+    child [pv] {node (c) {$*$}
+      child [pv] {node (d) {$*$}}
       child [nonpv] {node {$*$}}
     }
     child [nonpv] {node {$1$}
@@ -42,5 +44,11 @@
   }
   child[missing]
   child[missing];
+
+  \node[left=9 of a, helper] (ln1) {$+$}
+    child {node [helper] (ln2) {$-$}
+        child {node [helper] (ln3) {$+$}
+            child {node [helper] (ln4) {$-$}}}};
+
 \end{tikzpicture}
 \end{document}
