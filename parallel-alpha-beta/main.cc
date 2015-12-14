@@ -25,6 +25,7 @@ void startSearch()
 
     double start = bsp_time();
     game.start();
+    bsp_sync();
     double duration = bsp_time() - start;
 
     for(node p = 0; p < nodes; ++p)
