@@ -13,20 +13,28 @@ void startSearch()
 {
   bsp_begin(nodes);
 
-  Board initial;
-  Minimax game(initial, nodes, branching, depth, true);
-
-  double start = bsp_time();
-  game.start();
-  double duration = bsp_time() - start;
-
-  for(node p = 0; p < nodes; ++p)
-  {
-    if(bsp_pid() == p)
+  for(node p = 1; p <= nodes; ++p)
+  { 
+    if(bsp_pid() == 0)
     {
-      cout << p << ": " << game.getCount() << "; duration: " << duration << '\n';
+      cout << "\nCores = " << p << '\n';
     }
-    bsp_sync();
+
+    Board initial;
+    Minimax game(initial, p, branching, depth, true);
+
+    double start = bsp_time();
+    game.start();
+    double duration = bsp_time() - start;
+
+    for(node p = 0; p < nodes; ++p)
+    {
+      if(bsp_pid() == p)
+      {
+        cout << "Core" << p << ": " << game.getCount() << "; duration: " << duration << '\n';
+      }
+      bsp_sync();
+    }
   }
 
   bsp_end();
