@@ -10,6 +10,10 @@ class Board
 
 public:
   Board();
+
+  // Construct a board from a communicated integer
+  explicit Board(int position);
+
   size_t evaluate() const;
   void move(Move const &move);
   void undo(Move const &move);
