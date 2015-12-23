@@ -3,4 +3,4 @@ extern "C" {
   #include "mcbsp.h"
 }
 
-typedef MCBSP_PROCESSOR_INDEX_DATATYPE node;
+typedef MCBSP_PROCESSOR_INDEX_DATATYPE processor;

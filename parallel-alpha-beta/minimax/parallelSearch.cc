@@ -1,134 +1,163 @@
 #include "minimax.ih"
 
-int Minimax::parallelSearch(Board *board, int alpha, int beta, size_t depth, bool maximizing, NodeType type, node proc)
+int Minimax::parallelSearch(Board *board, vector<char> *finished, int alpha, int beta, size_t depth, bool maximizing, NodeType type)
 {
-  ++d_count;
+  ++d_total;
+  ++d_nodes;
 
   // Some check for completeness
-  if (d_count % 1000000 == 0)
+  if (d_nodes % 100000 == 0)
   {
+    // Reset counting
+    d_nodes = 0;
+
+    // Mark your status as working
+    broadCastStatus(finished, false);
+
     bsp_sync();
+
+    // Here you can possibly send some board position...
   }
 
-  if (depth == 1)
+  // Prepare the moves
+  vector<Move> moves = board->listMoves(maximizing, d_branches);
+
+  if (depth == 1 or moves.size() == 0)
   {
     return maximizing ? board->evaluate() : -board->evaluate();
   }
 
-  // Prepare the moves
-  vector<int> moves(d_branches);
-
-  for (size_t i = 0; i != d_branches; ++i)
-    moves[i] = maximizing ? d_branches - i : i + 1;
-
   switch (type)
   {
-  case PRINCIPAL:
-  {
-    board->move(moves[0]); // Do move
-    alpha = -parallelSearch(board, -beta, -alpha, depth - 1, not maximizing, PRINCIPAL, proc);
-    board->move(-moves[0]); // Undo move
-
     /**
-     * Do the other moves in parallel
-     * assume there are enough processors
+     * On the principal nodes parallelism is always an option
+     * after the first child is searche sequentially to
+     * establish an initial search window [alpha, beta].
      */
-    vector<int> nonPVScores(d_branches - 1);
-    vector<char> finished(d_nodes, false);
-
-    bsp_push_reg(&finished[0], finished.size() * sizeof(char));
-    bsp_push_reg(&nonPVScores[0], nonPVScores.size() * sizeof(int));
-    bsp_sync();
-
-    for (size_t i = 1; i != d_branches; ++i)
+    case PRINCIPAL:
     {
-      if (proc == (i - 1) % d_nodes)
-      {
-        board->move(moves[i]); // Do move
-        nonPVScores[i - 1] = -parallelSearch(board, -beta, -alpha, depth - 1, not maximizing, CUT, proc);
-        board->move(-moves[i]); // Undo move
-
-        // Broadcast to other processors
-        for (node p = 0; p != d_nodes; ++p)
-          if (p != proc)
-            bsp_put(p, &nonPVScores[i - 1], &nonPVScores[0], (i - 1) * sizeof(int), sizeof(int));
-      }
-    }
-
-    // Mark your status as finished
-    finished[proc] = true;
-
-    // Inform the others of being done
-    for (node p = 0; p != d_nodes; ++p)
-      if (p != proc)
-        bsp_put(p, &finished[proc], &finished[0], proc * sizeof(char), sizeof(char));
-
-    // Get stuck in a loop waiting for the slowest processor to arrive
-    while (true)
-    {
+      // Stores the score of each move
+      vector<int> scores(moves.size());
+      bsp_push_reg(&scores[0], scores.size() * sizeof(int));
       bsp_sync();
 
-      bool done = true;
+      // Search the principle variation with all processors sequentially
+      board->move(moves[0]); // Do move
+      scores[0] = -parallelSearch(board, finished, -beta, -alpha, depth - 1, not maximizing, PRINCIPAL);
+      board->undo(moves[0]); // Undo move
 
-      // Done before the others probably
-      for (node p = 0; p < d_nodes; ++p)
+      // PV alpha value
+      alpha = scores[0];
+
+      /**
+       * Do the other moves in parallel
+       * assume there are enough processors
+       */
+
+      for (size_t move = 1; move < moves.size(); ++move)
       {
-        if (not finished[p])
+        // Cyclically distribute the remaining moves
+        if (d_proc == (move - 1) % d_procs)
         {
-          // Here you can fetch work from processor p :).
-          done = false;
-          break;
+          // Do move
+          board->move(moves[move]);
+
+          // The younger brother is a CUT node
+          scores[move] = -parallelSearch(board, finished, -beta, -alpha, depth - 1, not maximizing, CUT);
+
+          // Undo move
+          board->undo(moves[move]);
+
+          // Broadcast score to other processors
+          for (processor p = 0; p != d_procs; ++p)
+            if (p != d_proc)
+              bsp_put(p, &scores[move], &scores[0], move * sizeof(int), sizeof(int));
         }
       }
 
-      // Proceed when everyone is done...
-      if (done)
-        break;
+      // Reset the node counter
+      d_nodes = 0;
+
+      // Inform the others of being done
+      broadCastStatus(finished, true);
+
+      while (waitForWork(finished))
+      {
+        // Here this guy should receive work from a busy proc
+        // change its status to NOT finished
+      }
+
+      // Find the highest score
+      for (size_t idx = 1; idx < moves.size(); ++idx)
+        if (scores[idx] > alpha)
+          alpha = scores[idx];
+
+      bsp_pop_reg(&scores[0]);
+
+      return alpha;
+
+      break;
     }
 
-    // Find the highest score
-    for (node p = 1; p != d_branches; ++p)
-      if (nonPVScores[p - 1] > alpha)
-        alpha = nonPVScores[p - 1];
+    /**
+     * Never put children of CUT nodes on the work queue
+     */
+    case CUT:
+    {
+      // Not on the PV, so simply go over each move.
+      int max = numeric_limits<int>::min();
 
-    bsp_pop_reg(&finished[0]);
-    bsp_pop_reg(&nonPVScores[0]);
+      // Search all moves
+      for (size_t i = 0; i < moves.size(); ++i)
+      {
+        board->move(moves[i]); // Do move
+        int score = -parallelSearch(board, finished, -beta, -alpha, depth - 1, not maximizing, ALL);
+        board->undo(moves[i]); // Undo move
 
-    return alpha;
+        if (score > max)
+          max = score;
 
+        if (alpha < score)
+          alpha = score;
+
+        if (alpha >= beta)
+          break;
+      }
+
+      return max;
+    }
+    break;
+
+    /**
+     * Put all children of ALL nodes in the work queue :)
+     */
+    case ALL:
+    {
+      // Not on the PV, so simply go over each move.
+      int max = numeric_limits<int>::min();
+
+      // Search all moves
+      for (size_t i = 0; i != d_branches; ++i)
+      {
+        board->move(moves[i]); // Do move
+        int score = -parallelSearch(board, finished, -beta, -alpha, depth - 1, not maximizing, CUT);
+        board->undo(moves[i]); // Undo move
+
+        if (score > max)
+          max = score;
+
+        if (alpha < score)
+          alpha = score;
+
+        if (alpha >= beta)
+          break;
+      }
+
+      return max;
+    }
     break;
   }
 
-  case CUT:
-  case ALL:
-  {
-    // Not on the PV, so simply go over each move.
-    int max = numeric_limits<int>::min();
-
-    // Alternate children type
-    NodeType childType = (type == CUT) ? ALL : CUT;
-
-    // Search all moves
-    for (size_t i = 0; i != d_branches; ++i)
-    {
-      board->move(moves[i]); // Do move
-      int score = -parallelSearch(board, -beta, -alpha, depth - 1, not maximizing, childType, proc);
-      board->move(-moves[i]); // Undo move
-
-      if (score > max)
-        max = score;
-
-      if (alpha < score)
-        alpha = score;
-
-      if (alpha >= beta)
-        break;
-    }
-
-    return max;
-  }
-  break;
-  }
-
+  // You cannot reach this part, but this disables compiler warnings
   return 0;
 }
