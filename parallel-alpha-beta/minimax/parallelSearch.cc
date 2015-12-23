@@ -105,11 +105,11 @@ int Minimax::parallelSearch(Board *board, vector<char> *finished, int alpha, int
       int max = numeric_limits<int>::min();
 
       // Search all moves
-      for (size_t move = 0; move < moves.size(); ++i)
+      for (auto move : moves)
       {
-        board->move(moves[i]); // Do move
+        board->move(move); // Do move
         int score = -parallelSearch(board, finished, -beta, -alpha, depth - 1, not maximizing, ALL);
-        board->undo(moves[i]); // Undo move
+        board->undo(move); // Undo move
 
         if (score > max)
           max = score;
@@ -132,11 +132,11 @@ int Minimax::parallelSearch(Board *board, vector<char> *finished, int alpha, int
       int max = numeric_limits<int>::min();
 
       // Search all moves
-      for (size_t move = 0; move < moves.size(); ++i)
+      for (auto move : moves)
       {
-        board->move(moves[i]); // Do move
+        board->move(move); // Do move
         int score = -parallelSearch(board, finished, -beta, -alpha, depth - 1, not maximizing, CUT);
-        board->undo(moves[i]); // Undo move
+        board->undo(move); // Undo move
 
         if (score > max)
           max = score;
