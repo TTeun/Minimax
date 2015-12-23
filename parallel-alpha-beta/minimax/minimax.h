@@ -1,6 +1,7 @@
 #ifndef INCLUDED_GAME_
 #define INCLUDED_GAME_
 
+#include <vector>
 #include "../board/board.h"
 #include "../parallel.h"
 

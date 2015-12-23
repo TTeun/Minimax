@@ -1,7 +1,8 @@
 #ifndef INCLUDED_BOARD_
 #define INCLUDED_BOARD_
 
-#include <cstddef>
+#include <vector>
+#include "../move/move.h"
 
 class Board
 {
@@ -10,7 +11,9 @@ class Board
 public:
   Board();
   size_t evaluate() const;
-  void move(size_t value);
+  void move(Move const &move);
+  void undo(Move const &move);
+  std::vector<Move> listMoves(bool maximizing, size_t branches) const;
 };
 
 inline size_t Board::evaluate() const
@@ -18,9 +21,14 @@ inline size_t Board::evaluate() const
   return d_position;
 }
 
-inline void Board::move(size_t value)
+inline void Board::move(Move const &move)
 {
-  d_position += value;
+  d_position += move.getValue();
+}
+
+inline void Board::undo(Move const &move)
+{
+  d_position -= move.getValue();
 }
 
 #endif
