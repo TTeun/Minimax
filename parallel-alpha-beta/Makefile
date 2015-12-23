@@ -1,7 +1,7 @@
 CXXINCL = -I../../bsp/include
 LDLIBS = -L../../bsp/lib -lmcbsp1.2.0 -lpthread
 CXX = g++
-CXXFLAGS = -MMD -O3 -std=c++11
+CXXFLAGS = -MMD -g -std=c++11 -Wall
 LINKER = $(CXX)
 LDFLAGS = 
 

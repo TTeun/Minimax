@@ -8,4 +8,5 @@ Minimax::Minimax(Board board, node nodes, size_t branches, size_t depth, bool ma
   d_depth(depth),
   d_maximizing(maximizing),
   d_count(0)
-{}
+{
+}
