@@ -95,8 +95,6 @@ int Minimax::parallelSearch(Board *board, vector<char> *finished, int alpha, int
       bsp_pop_reg(&scores[0]);
 
       return alpha;
-
-      break;
     }
 
     /**
@@ -104,7 +102,6 @@ int Minimax::parallelSearch(Board *board, vector<char> *finished, int alpha, int
      */
     case CUT:
     {
-      // Not on the PV, so simply go over each move.
       int max = numeric_limits<int>::min();
 
       // Search all moves
@@ -126,14 +123,12 @@ int Minimax::parallelSearch(Board *board, vector<char> *finished, int alpha, int
 
       return max;
     }
-    break;
 
     /**
      * Put all children of ALL nodes in the work queue :)
      */
     case ALL:
     {
-      // Not on the PV, so simply go over each move.
       int max = numeric_limits<int>::min();
 
       // Search all moves
@@ -155,7 +150,6 @@ int Minimax::parallelSearch(Board *board, vector<char> *finished, int alpha, int
 
       return max;
     }
-    break;
   }
 
   // You cannot reach this part, but this disables compiler warnings
