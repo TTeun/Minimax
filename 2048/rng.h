@@ -2,7 +2,7 @@
 #include <unistd.h>
 #include <time.h>
 #include <fcntl.h>
-static inline unsigned unif_random(unsigned n) {
+static inline unsigned unifRandom(unsigned n) {
     static int seeded = 0;
 
     if(!seeded) {

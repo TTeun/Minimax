@@ -18,6 +18,19 @@ void printBoard(board_t board){
     printf("\n");
 }
 
+int maximum(int a, int b){
+    return (a > b) ? a : b;
+}
+
+static int maxTile(board_t board){
+    int max = 0;
+    for (int i = 0; i < 16; i++){
+        max = maximum(max, int(board & 0xF));
+                board >>= 4;
+    }
+    return max;
+}
+
 static inline board_t transpose(board_t x)
 {
     board_t a1 = x & 0xF0F00F0FF0F00F0FULL;
@@ -31,24 +44,20 @@ static inline board_t transpose(board_t x)
 }
 
 /************ Count the empty entries */
-static int count_empty(board_t x)
+static int countEmpty(board_t x)
 {
     x |= (x >> 2) & 0x3333333333333333ULL;
     x |= (x >> 1);
     x = ~x & 0x1111111111111111ULL;
-    // At this point each nibble is:
-    //  0 if the original nibble was non-zero
-    //  1 if the original nibble was zero
-    // Next sum them all
+
     x += x >> 32;
     x += x >> 16;
     x += x >>  8;
-    x += x >>  4; // this can overflow to the next nibble if there were 16 empty positions
+    x += x >>  4;
     return x & 0xf;
 }
 
-static board_t insert_tile_rand(board_t board, board_t tile) {
-    int index = unif_random(count_empty(board));
+static board_t insertTileSet(board_t board, board_t tile, int index) {
     board_t tmp = board;
     while (true) {
         while ((tmp & 0xf) != 0) {
@@ -63,34 +72,23 @@ static board_t insert_tile_rand(board_t board, board_t tile) {
     return board | tile;
 }
 
-static board_t insert_tile_set(board_t board, board_t tile, int index) {
-    board_t tmp = board;
-    while (true) {
-        while ((tmp & 0xf) != 0) {
-            tmp >>= 4;
-            tile <<= 4;
-        }
-        if (index == 0) break;
-        --index;
-        tmp >>= 4;
-        tile <<= 4;
-    }
-    return board | tile;
+static board_t insertTileRand(board_t board, board_t tile) {
+    return insertTileSet(board, tile, unifRandom(countEmpty(board))); 
 }
 
 static board_t drawNew(){
-    return (unif_random(10) < 9) ? 1 : 2;
+    return (unifRandom(10) < 9) ? 1 : 2;
 }
 
 static board_t initBoard(){
     board_t board = 0x0ULL;
-    board |= drawNew() << (unif_random(16) * 4);
-    return (insert_tile_rand(board, drawNew()));
+    board |= drawNew() << (unifRandom(16) * 4);
+    return (insertTileRand(board, drawNew()));
 }
 
-/************ To select bottom row */
+/************ To select row */
 static const board_t ROW_MASK = 0xFFFFULL;
-/************ Select right column */
+/************ Select column */
 static const board_t COL_MASK = 0x000F000F000F000FULL;
 
 
@@ -109,9 +107,17 @@ static row_t row_right_table[65536];
 static board_t col_up_table[65536];
 static board_t col_down_table[65536];
 static float score_table[65536];
+static float heur_score_table[65536];
 
+static const float SCORE_LOST_PENALTY = 200000.0f;
+static const float SCORE_MONOTONICITY_POWER = 4.0f;
+static const float SCORE_MONOTONICITY_WEIGHT = 47.0f;
+static const float SCORE_SUM_POWER = 3.5f;
+static const float SCORE_SUM_WEIGHT = 11.0f;
+static const float SCORE_MERGES_WEIGHT = 700.0f;
+static const float SCORE_EMPTY_WEIGHT = 270.0f;
 
-void init_tables() {
+void initTables() {
     for (unsigned row = 0; row < 65536; ++row) {
         unsigned line[4] = {
                 (row >>  0) & 0xf,
@@ -130,6 +136,47 @@ void init_tables() {
             }
         }
         score_table[row] = score;
+
+        float sum = 0;
+        int empty = 0;
+        int merges = 0;
+
+        int prev = 0;
+        int counter = 0;
+        for (int i = 0; i < 4; ++i) {
+            int rank = line[i];
+            sum += pow(rank, SCORE_SUM_POWER);
+            if (rank == 0) {
+                empty++;
+            } else {
+                if (prev == rank) {
+                    counter++;
+                } else if (counter > 0) {
+                    merges += 1 + counter;
+                    counter = 0;
+                }
+                prev = rank;
+            }
+        }
+        if (counter > 0) {
+            merges += 1 + counter;
+        }
+
+        float monotonicity_left = 0;
+        float monotonicity_right = 0;
+        for (int i = 1; i < 4; ++i) {
+            if (line[i-1] > line[i]) {
+                monotonicity_left += pow(line[i-1], SCORE_MONOTONICITY_POWER) - pow(line[i], SCORE_MONOTONICITY_POWER);
+            } else {
+                monotonicity_right += pow(line[i], SCORE_MONOTONICITY_POWER) - pow(line[i-1], SCORE_MONOTONICITY_POWER);
+            }
+        }
+
+        heur_score_table[row] = SCORE_LOST_PENALTY +
+            SCORE_EMPTY_WEIGHT * empty +
+            SCORE_MERGES_WEIGHT * merges -
+            SCORE_MONOTONICITY_WEIGHT * std::min(monotonicity_left, monotonicity_right) -
+            SCORE_SUM_WEIGHT * sum;
 
         // execute a move to the left
         for (int i = 0; i < 3; ++i) {
@@ -166,7 +213,7 @@ void init_tables() {
     }
 }
 
-static inline board_t execute_move_0(board_t board) {
+static inline board_t executeMove0(board_t board) {
     board_t ret = board;
     board_t t = transpose(board);
     ret ^= col_up_table[(t >>  0) & ROW_MASK] <<  0;
@@ -176,7 +223,7 @@ static inline board_t execute_move_0(board_t board) {
     return ret;
 }
 
-static inline board_t execute_move_1(board_t board) {
+static inline board_t executeMove1(board_t board) {
     board_t ret = board;
     board_t t = transpose(board);
     ret ^= col_down_table[(t >>  0) & ROW_MASK] <<  0;
@@ -186,7 +233,7 @@ static inline board_t execute_move_1(board_t board) {
     return ret;
 }
 
-static inline board_t execute_move_2(board_t board) {
+static inline board_t executeMove2(board_t board) {
     board_t ret = board;
     ret ^= board_t(row_left_table[(board >>  0) & ROW_MASK]) <<  0;
     ret ^= board_t(row_left_table[(board >> 16) & ROW_MASK]) << 16;
@@ -195,7 +242,7 @@ static inline board_t execute_move_2(board_t board) {
     return ret;
 }
 
-static inline board_t execute_move_3(board_t board) {
+static inline board_t executeMove3(board_t board) {
     board_t ret = board;
     ret ^= board_t(row_right_table[(board >>  0) & ROW_MASK]) <<  0;
     ret ^= board_t(row_right_table[(board >> 16) & ROW_MASK]) << 16;
@@ -205,22 +252,22 @@ static inline board_t execute_move_3(board_t board) {
 }
 
 /* Execute a move. */
-static inline board_t execute_move(int move, board_t board) {
+static inline board_t executeMove(int move, board_t board) {
     switch(move) {
     case 0: // up
-        return execute_move_0(board);
+        return executeMove0(board);
     case 1: // down
-        return execute_move_1(board);
+        return executeMove1(board);
     case 2: // left
-        return execute_move_2(board);
+        return executeMove2(board);
     case 3: // right
-        return execute_move_3(board);
+        return executeMove3(board);
     default:
         return ~0ULL;
     }
 }
 
-static float score_helper(board_t board, const float* table) {
+static float scoreHelper(board_t board, const float* table) {
     return table[(board >>  0) & ROW_MASK] +
            table[(board >> 16) & ROW_MASK] +
            table[(board >> 32) & ROW_MASK] +
