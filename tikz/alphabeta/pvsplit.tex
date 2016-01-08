@@ -1,0 +1,54 @@
+\documentclass[tikz,convert={outext=.svg,command=\unexpanded{pdf2svg \infile\space\outfile}},multi=false]{standalone}
+\definecolor{pink}{HTML}{C2185B}
+\definecolor{bg}{HTML}{F9C300}
+\usetikzlibrary{trees}
+\usetikzlibrary{decorations.pathmorphing}
+\usetikzlibrary{decorations.markings}
+\usetikzlibrary{backgrounds}
+\usetikzlibrary{positioning}
+\tikzstyle{helper} = [black,draw=white,fill=white, ultra thick, rectangle]
+\tikzstyle{found} = [pink,draw=pink,fill=white, ultra thick]
+\tikzstyle{cutted} = [dotted,fill=pink!50]
+\tikzstyle{pv} = [line width=3pt]
+\tikzstyle{nonpv} = [line width=.5pt]
+
+\begin{document}
+\begin{tikzpicture}[
+  level distance=10mm,
+  every node/.style={circle,white,minimum size=6mm,inner sep=1pt, fill=pink, thin},
+  level 1/.style={sibling distance=50mm},
+  level 2/.style={sibling distance=21mm},
+  level 3/.style={sibling distance=7mm},
+]
+\node (a) {$*$}
+  child [pv] {node (b) {$*$}
+    child [pv] {node (c) {$*$}
+      child [pv] {node (d) {$*$}}
+      child [nonpv] {node {$*$}}
+    }
+    child [nonpv] {node {$1$}
+      child [nonpv] {node {}}
+      child [nonpv] {node {}}
+      child [nonpv] {node {}}
+    }
+    child [nonpv] {node {$2$}
+      child [nonpv] {node {}}
+      child [nonpv] {node {}}
+      child [nonpv] {node {}}
+    }
+    child [nonpv] {node {$3$}
+      child [nonpv] {node {}}
+      child [nonpv] {node {}}
+      child [nonpv] {node {}}
+    }
+  }
+  child[missing]
+  child[missing];
+
+  \node[left=9 of a, helper] (ln1) {$+$}
+    child {node [helper] (ln2) {$-$}
+        child {node [helper] (ln3) {$+$}
+            child {node [helper] (ln4) {$-$}}}};
+
+\end{tikzpicture}
+\end{document}

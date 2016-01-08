@@ -1,0 +1,50 @@
+\documentclass[tikz]{standalone}
+\usetikzlibrary{trees}
+\usetikzlibrary{decorations.pathmorphing}
+\usetikzlibrary{decorations.markings}
+\begin{document}
+
+\tikzset{
+  principal/.style={ultra thick, blue},
+  singleproc/.style={dotted},
+  normal/.style={thin,black,solid},
+}
+
+\begin{tikzpicture}[
+  baseline,
+  level distance=20mm,
+  text depth=.1em,
+  text height=.8em,
+  level 1/.style={sibling distance=18em},
+  level 2/.style={sibling distance=6em},
+  level 3/.style={sibling distance=6em}
+]
+\node [rectangle,draw] (start){I}
+  child [principal] {node [normal,rectangle,draw] (p2) {$\{1,2,3,4,5\}$}
+    child {node [normal,rectangle,draw] (p3) {$\{1,2,3,4,5\}$}
+      child { node [normal,rectangle,draw] (p4) {$\{1,2,3,4,5\}$}}
+      child [normal] {node [rectangle,draw] {$\{1,2,3\}$}}
+      child [normal] {node [rectangle,draw] {$\{4,5\}$}}
+    } 
+    child [normal] {node [rectangle,draw] {$\{1,2,3\}$} }
+    child [normal] {node [rectangle,draw] {$\{4,5\}$} }
+  }
+  child [normal] {node [rectangle,draw] (c1) {$\{1,2,3\}$}
+    child [principal] {node [normal,rectangle,draw] (p1c1) {$\{1,2,3\}$}}
+    child {node [rectangle,draw] (c1c1) {$\{1,2\}$}
+      child [principal] {node [normal,rectangle,draw] (p1c1p1) {$\{1,2\}$}}
+      child [singleproc] {node [normal,rectangle,draw] (p1c1c1) {$\{1\}$}}
+      child [singleproc] {node [normal,rectangle,draw] (p1c1c2) {$\{2\}$}}
+      child [singleproc] {node [normal,rectangle,draw] (p1c1c3) {$\{1\}$}}
+      child [singleproc] {node [normal,rectangle,draw] (p1c1c4) {$\{2\}$}}
+    }
+    child [singleproc] {node [normal,rectangle,draw] (c1c2) {$\{3\}$}}
+  }
+  child [normal] {node [rectangle,draw] (c2) {$\{4,5\}$}
+    child [principal] {node [normal,rectangle,draw] {$\{4,5\}$}}
+    child [singleproc] {node [normal,rectangle,draw] {$\{4\}$}}
+    child [singleproc] {node [normal,rectangle,draw] {$\{5\}$}}
+  };
+
+\end{tikzpicture}
+\end{document}
